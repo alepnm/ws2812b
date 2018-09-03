@@ -190,17 +190,17 @@ static void UserTimersEventHandler(uint8_t timer) {
 
         break;
     case USER_TIMER2:
-        BRD_LED_Off(LD3);
+        BRD_LED_Off(LD2);
         break;
     case USER_TIMER3:
-        BRD_LED_Toggle(LD3);
+        //BRD_LED_Toggle(LD3);
         break;
     case USER_TIMER4:
-        BRD_LED_Toggle(LD4);
+        BRD_LED_Toggle(LD7);
 
         StartUserOneShotTimer(USER_TIMER2, 50);
 
-        BRD_LED_On(LD3);
+        BRD_LED_On(LD2);
         break;
     }
 }

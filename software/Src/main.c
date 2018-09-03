@@ -46,8 +46,8 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-TIM_HandleTypeDef htim2;
-DMA_HandleTypeDef hdma_tim2_ch2;
+TIM_HandleTypeDef htim16;
+DMA_HandleTypeDef hdma_tim16_ch1_up;
 
 /* USER CODE BEGIN PV */
 
@@ -57,25 +57,31 @@ DMA_HandleTypeDef hdma_tim2_ch2;
 #define LOW_LVL     18  // loginis 0
 #define HIGH_LVL    44  // loginis 1
 
-#define LEDS_BUF_SIZE   (50 + nLEDS*24)
+#define LEDS_BUF_SIZE   (46 + nLEDS*24 + 1)
 
 
 /* Private variables ---------------------------------------------------------*/
-uint8_t data[50 + 24 * nLEDS];   // taimerio PULSE reiksme vienam sviesdiodziui
+uint8_t dma_buffer[LEDS_BUF_SIZE];   // taimerio PULSE reiksme vienam sviesdiodziui
+
+FlagStatus SendToLedsRequired = RESET;
+FlagStatus BufferIsFilled = RESET;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_TIM2_Init(void);
+static void MX_TIM16_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+void WS2812B_Init(void);
 void WS2812B_LedsOff(void);
+void WS2812B_FillBuffer(uint32_t* pdata);
 void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue);
+uint8_t* WS2812B_GetLedBuferPointer( uint16_t led);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -92,7 +98,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
     static uint32_t delay = 0;
-
+    static uint8_t n = 1, val = 0x01;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -114,18 +120,24 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_TIM2_Init();
+  MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
+
+    UserTimersInit();
 
     StartUserPeriodicTimer(USER_TIMER3, 40);
     StartUserPeriodicTimer(USER_TIMER4, 1000);
 
+    /* inicializuojam buferi */
+    WS2812B_Init();
+
+    /* isvalom buferi ir gesinam ledus */
     WS2812B_LedsOff();
 
-//    WS2812B_Set_RGB(1, 0x00, 0x00, 0x10);
-//    WS2812B_Set_RGB(2, 0x10, 0x00, 0x00);
-//    WS2812B_Set_RGB(3, 0x00, 0x10, 0x00);
-//    WS2812B_Set_RGB(10, 0x01, 0x01, 0x01);
+    WS2812B_Set_RGB(6, 0x00, 0x00, 0x01);   //B
+    WS2812B_Set_RGB(2, 0x10, 0x00, 0x00);   //R
+    //WS2812B_Set_RGB(3, 0x00, 0x01, 0x00); //G
+    //WS2812B_Set_RGB(10, 0xFF, 0xFF, 0xFF);//
 
   /* USER CODE END 2 */
 
@@ -138,18 +150,19 @@ int main(void)
 
             delay = HAL_GetTick() + 10;
 
-            /* siunciam buferi */
-            HAL_TIM_PWM_Start_DMA(&htim2, TIM_CHANNEL_2, (uint32_t*)data, LEDS_BUF_SIZE );
-        }else{
-            /* tvarkom buferi */
-
-
+            SendToLedsRequired = SET;
         }
+
 
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
 
+        /* siunciam buferi */
+        if(SendToLedsRequired == SET){
+            SendToLedsRequired = RESET;
+            HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, LEDS_BUF_SIZE );
+        }
   }
   /* USER CODE END 3 */
 
@@ -167,11 +180,12 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = 16;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL6;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL12;
   RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -203,39 +217,26 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 
-/* TIM2 init function */
-static void MX_TIM2_Init(void)
+/* TIM16 init function */
+static void MX_TIM16_Init(void)
 {
 
-  TIM_ClockConfigTypeDef sClockSourceConfig;
-  TIM_MasterConfigTypeDef sMasterConfig;
   TIM_OC_InitTypeDef sConfigOC;
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig;
 
-  htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
-  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 60;
-  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  htim16.Instance = TIM16;
+  htim16.Init.Prescaler = 0;
+  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim16.Init.Period = 60;
+  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim16.Init.RepetitionCounter = 0;
+  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  if (HAL_TIM_PWM_Init(&htim16) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -243,13 +244,28 @@ static void MX_TIM2_Init(void)
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  HAL_TIM_MspPostInit(&htim2);
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim16, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  HAL_TIM_MspPostInit(&htim16);
 
 }
 
@@ -263,7 +279,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 3, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 
 }
@@ -283,30 +299,67 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, LD4_Pin|LD3_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, LD5_Pin|LD2_Pin|LD7_Pin|LD6_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : LD4_Pin LD3_Pin */
-  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin;
+  /*Configure GPIO pins : LD5_Pin LD2_Pin LD7_Pin LD6_Pin */
+  GPIO_InitStruct.Pin = LD5_Pin|LD2_Pin|LD7_Pin|LD6_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
 /* USER CODE BEGIN 4 */
 
 /*  */
+void WS2812B_Init(void){
+
+    uint16_t i = 0;
+
+    while(i < LEDS_BUF_SIZE){
+       dma_buffer[i] = 0;
+       i++;
+    }
+}
+
+
+/* buferio uzpildymas. */
+void WS2812B_FillBuffer(uint32_t* pdata){
+
+    uint16_t i = 0, j = 0;
+    uint32_t color = 0;
+    uint8_t* pbuf = dma_buffer+46;
+
+    BufferIsFilled = RESET;
+
+    /* ruosiam buferi */
+    while(i < nLEDS*24){
+
+        color = *(pdata+i);
+
+        while(j < 24){
+            *(pbuf+j) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
+            color = color<<1;
+            j++;
+        }
+
+        j = 0;
+        i++;
+    }
+
+    BufferIsFilled = SET;
+}
+
+/*  */
 void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
 
     uint8_t i = 0;
     uint32_t color = (green<<16) | (red<<8) | blue;
-
-    uint8_t* pdata = data + 50 + 24*(led-1);    // pointeris i reikiama leda
-
+    uint8_t* pdata = WS2812B_GetLedBuferPointer(led);    // pointeris i reikiama ledo buferi
 
     while(i < 24){
         *(pdata+i) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
@@ -316,17 +369,23 @@ void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
 }
 
 
+/* grazina pasirinkto ledo 3 baitu pozicija ledu buferyje */
+uint8_t* WS2812B_GetLedBuferPointer( uint16_t led){
+    return dma_buffer + (46 + 24*(led-1) );
+}
+
+/*  */
 void WS2812B_LedsOff(void){
 
     uint16_t i = 0;
-    uint8_t* pdata = data + 50;
+    uint8_t* pdata = dma_buffer + 46;
 
-    while(i< 24*nLEDS){
+    while(i < 24*nLEDS){
         *(pdata+i) = LOW_LVL;
         i++;
     }
 
-    HAL_TIM_PWM_Start_DMA(&htim2, TIM_CHANNEL_2, (uint32_t*)data, LEDS_BUF_SIZE );
+    HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, LEDS_BUF_SIZE );
     HAL_Delay(10);
 }
 
@@ -335,6 +394,8 @@ void WS2812B_LedsOff(void){
 void HAL_SYSTICK_Callback(void)
 {
     SysTimeCounterUpdate();
+
+    //SendToLedsRequired = SET;
 }
 /* USER CODE END 4 */
 

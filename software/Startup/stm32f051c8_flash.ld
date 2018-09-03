@@ -27,7 +27,7 @@
 /* ---------------------------------------------------------------------------- */
 
 /*------------------------------------------------------------------------------
- *      Linker script for running in internal FLASH on the STM32F051R8
+ *      Linker script for running in internal FLASH on the STM32F051C8
  *----------------------------------------------------------------------------*/
 
 OUTPUT_FORMAT("elf32-littlearm", "elf32-littlearm", "elf32-littlearm")

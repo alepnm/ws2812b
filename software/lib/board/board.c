@@ -3,10 +3,10 @@
 #include "board.h"
 
 
-#define LEDn    2
+#define LEDn    4
 
-GPIO_TypeDef* LED_PORT[] = {LD3_GPIO_Port, LD4_GPIO_Port};
-const uint16_t LED_PIN[] = {LD3_Pin, LD4_Pin};
+GPIO_TypeDef* LED_PORT[] = {LD2_GPIO_Port, LD5_GPIO_Port, LD6_GPIO_Port, LD7_GPIO_Port,};
+const uint16_t LED_PIN[] = {LD2_Pin, LD5_Pin, LD6_Pin, LD7_Pin};
 
 
 /*  */

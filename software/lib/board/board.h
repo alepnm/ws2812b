@@ -2,7 +2,7 @@
 #define UNICON_H_INCLUDED
 
 
-enum {LD3, LD4};
+enum {LD2, LD5, LD6, LD7};
 
 void BRD_LED_On(uint8_t led);
 void BRD_LED_Off(uint8_t led);

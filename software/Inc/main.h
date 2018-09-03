@@ -49,10 +49,14 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define LD4_Pin GPIO_PIN_8
-#define LD4_GPIO_Port GPIOC
-#define LD3_Pin GPIO_PIN_9
-#define LD3_GPIO_Port GPIOC
+#define LD5_Pin GPIO_PIN_0
+#define LD5_GPIO_Port GPIOB
+#define LD2_Pin GPIO_PIN_1
+#define LD2_GPIO_Port GPIOB
+#define LD7_Pin GPIO_PIN_2
+#define LD7_GPIO_Port GPIOB
+#define LD6_Pin GPIO_PIN_10
+#define LD6_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**
