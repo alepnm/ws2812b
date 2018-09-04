@@ -3906,7 +3906,7 @@
 	"stm32f0xx_hal_usart.h"
 	"stm32f0xx_hal_wwdg.h"
 
-1535923807 d:\projects\ws2812b\software\inc\main.h
+1536074993 d:\projects\ws2812b\software\inc\main.h
 
 1523694476 d:\projects\ws2812b\software\drivers\stm32f0xx_hal_driver\inc\stm32f0xx_hal_rcc.h
 	"stm32f0xx_hal_def.h"
@@ -4413,23 +4413,23 @@
 1523694476 d:\projects\ws2812b\software\drivers\stm32f0xx_hal_driver\inc\stm32f0xx_ll_system.h
 	"stm32f0xx.h"
 
-1535741190 source:d:\projects\ws2812b\software\lib\board\board.c
+1536074993 source:d:\projects\ws2812b\software\lib\board\board.c
 	"stm32f0xx_hal.h"
 	"board.h"
 
-1535740933 d:\projects\ws2812b\software\lib\board\board.h
+1536074993 d:\projects\ws2812b\software\lib\board\board.h
 
-1535826800 source:d:\projects\ws2812b\software\lib\systick\systick.c
+1536074993 source:d:\projects\ws2812b\software\lib\systick\systick.c
 	"stm32f0xx_hal.h"
 	"systick.h"
 	"board.h"
 
 1535741673 d:\projects\ws2812b\software\lib\systick\systick.h
 
-1535923807 source:d:\projects\ws2812b\software\src\stm32f0xx_hal_msp.c
+1536074993 source:d:\projects\ws2812b\software\src\stm32f0xx_hal_msp.c
 	"stm32f0xx_hal.h"
 
-1535924208 source:d:\projects\ws2812b\software\src\stm32f0xx_it.c
+1536074993 source:d:\projects\ws2812b\software\src\stm32f0xx_it.c
 	"stm32f0xx_hal.h"
 	"stm32f0xx.h"
 	"stm32f0xx_it.h"
@@ -4443,13 +4443,13 @@
 
 1535738182 source:d:\projects\ws2812b\software\startup\startup_stm32f0xx.s
 
-1535930800 source:d:\projects\ws2812b\software\src\main.c
+1536096133 source:d:\projects\ws2812b\software\src\main.c
 	"main.h"
 	"stm32f0xx_hal.h"
 	"systick.h"
 	"presets.h"
 
-1535930420 d:\projects\ws2812b\software\inc\presets.h
+1536074993 d:\projects\ws2812b\software\inc\presets.h
 
 1509027296 source:c:\working\git\ws2812b\software\drivers\cmsis\dsp_lib\source\basicmathfunctions\arm_abs_f32.c
 	"arm_math.h"
@@ -5938,11 +5938,11 @@
 
 1535954385 source:c:\working\git\ws2812b\software\startup\startup_stm32f0xx.s
 
-1535983105 source:c:\working\git\ws2812b\software\src\main.c
+1536076201 source:c:\working\git\ws2812b\software\src\main.c
 	"main.h"
 	"stm32f0xx_hal.h"
 	"systick.h"
 	"presets.h"
 
-1535954385 c:\working\git\ws2812b\software\inc\presets.h
+1536076190 c:\working\git\ws2812b\software\inc\presets.h
 
