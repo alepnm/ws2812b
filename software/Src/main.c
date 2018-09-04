@@ -56,12 +56,26 @@ DMA_HandleTypeDef hdma_tim16_ch1_up;
 #define TMR_COUNTER 60  //60 -> 1.25us
 #define LOW_LVL     18  // loginis 0
 #define HIGH_LVL    44  // loginis 1
+#define RST_BYTES   46
 
-#define LEDS_BUF_SIZE   (46 + nLEDS*24 + 1)
+#define DMA_BUFFER_SIZE   (RST_BYTES + nLEDS*24 + 1)
+
+
+
+typedef struct{
+    uint32_t*   Body;       // pointeris i objekto forma/ilgi ir spalva
+    uint8_t     Speed;      // speed    (0-7)
+    uint8_t     Direction;  // kriptys  (FORWARD/BACK)
+}Meteo_TypeDef;
+
+
+
+
+
 
 
 /* Private variables ---------------------------------------------------------*/
-uint8_t dma_buffer[LEDS_BUF_SIZE];   // taimerio PULSE reiksme vienam sviesdiodziui
+uint8_t dma_buffer[DMA_BUFFER_SIZE];   // taimerio PULSE reiksme vienam sviesdiodziui
 
 FlagStatus SendToLedsRequired = RESET;
 FlagStatus BufferIsFilled = RESET;
@@ -79,7 +93,7 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 /* Private function prototypes -----------------------------------------------*/
 void WS2812B_Init(void);
 void WS2812B_LedsOff(void);
-void WS2812B_FillBuffer(uint32_t* pdata);
+void WS2812B_FillDMABuffer(const uint32_t* pdata);
 void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue);
 uint8_t* WS2812B_GetLedBuferPointer( uint16_t led);
 /* USER CODE END PFP */
@@ -98,7 +112,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
     static uint32_t delay = 0;
-    static uint8_t n = 1, val = 0x01;
+    static uint8_t n = 0, val = 0x01;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -134,10 +148,13 @@ int main(void)
     /* isvalom buferi ir gesinam ledus */
     WS2812B_LedsOff();
 
-    WS2812B_Set_RGB(6, 0x00, 0x00, 0x01);   //B
-    WS2812B_Set_RGB(2, 0x10, 0x00, 0x00);   //R
-    //WS2812B_Set_RGB(3, 0x00, 0x01, 0x00); //G
+    //WS2812B_Set_RGB(1, 0x00, 0xFF, 0x00);   //B
+    //WS2812B_Set_RGB(2, 0xFF, 0x00, 0x00);   //R
+    //WS2812B_Set_RGB(3, 0x00, 0x00, 0xFF); //G
     //WS2812B_Set_RGB(10, 0xFF, 0xFF, 0xFF);//
+
+
+    WS2812B_FillDMABuffer(meteo_red);
 
   /* USER CODE END 2 */
 
@@ -148,7 +165,11 @@ int main(void)
 
         if( delay < HAL_GetTick() ){
 
-            delay = HAL_GetTick() + 10;
+            delay = HAL_GetTick() + 30;
+
+            //WS2812B_FillDMABuffer(preset1+n*nLEDS);
+
+            if(++n > 19) n = 0;
 
             SendToLedsRequired = SET;
         }
@@ -161,7 +182,7 @@ int main(void)
         /* siunciam buferi */
         if(SendToLedsRequired == SET){
             SendToLedsRequired = RESET;
-            HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, LEDS_BUF_SIZE );
+            HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, DMA_BUFFER_SIZE );
         }
   }
   /* USER CODE END 3 */
@@ -320,29 +341,30 @@ void WS2812B_Init(void){
 
     uint16_t i = 0;
 
-    while(i < LEDS_BUF_SIZE){
+    /* isvalom buferi */
+    while(i < DMA_BUFFER_SIZE){
        dma_buffer[i] = 0;
        i++;
     }
 }
 
 
-/* buferio uzpildymas. */
-void WS2812B_FillBuffer(uint32_t* pdata){
+/* buferio uzpildymas. priima pointeri i preseto buferi */
+void WS2812B_FillDMABuffer(const uint32_t* pdata){
 
     uint16_t i = 0, j = 0;
     uint32_t color = 0;
-    uint8_t* pbuf = dma_buffer+46;
+    uint8_t* pdmabuf = dma_buffer+RST_BYTES;
 
     BufferIsFilled = RESET;
 
     /* ruosiam buferi */
-    while(i < nLEDS*24){
+    while(i < nLEDS){
 
         color = *(pdata+i);
 
         while(j < 24){
-            *(pbuf+j) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
+            *(pdmabuf+j+24*i) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
             color = color<<1;
             j++;
         }
@@ -371,21 +393,21 @@ void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
 
 /* grazina pasirinkto ledo 3 baitu pozicija ledu buferyje */
 uint8_t* WS2812B_GetLedBuferPointer( uint16_t led){
-    return dma_buffer + (46 + 24*(led-1) );
+    return dma_buffer + (RST_BYTES + 24*(led-1) );
 }
 
 /*  */
 void WS2812B_LedsOff(void){
 
     uint16_t i = 0;
-    uint8_t* pdata = dma_buffer + 46;
+    uint8_t* pdata = dma_buffer + RST_BYTES;
 
     while(i < 24*nLEDS){
         *(pdata+i) = LOW_LVL;
         i++;
     }
 
-    HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, LEDS_BUF_SIZE );
+    HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, DMA_BUFFER_SIZE );
     HAL_Delay(10);
 }
 
