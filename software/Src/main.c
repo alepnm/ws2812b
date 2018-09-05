@@ -6,7 +6,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether
+  * USER CODE END. Other portions of this file, whether 
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -42,7 +42,7 @@
 
 /* USER CODE BEGIN Includes */
 #include "systick.h"
-#include "presets.h"
+#include "ws2812b.h"
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -50,65 +50,20 @@ TIM_HandleTypeDef htim16;
 DMA_HandleTypeDef hdma_tim16_ch1_up;
 
 /* USER CODE BEGIN PV */
-
-#define nLEDS       10
-
-#define MAX_LIGHT   0x80    // sviesos diodo MAX ryskumas
-
-#define TMR_COUNTER 60  //60 -> 1.25us
-#define LOW_LVL     18  // loginis 0
-#define HIGH_LVL    44  // loginis 1
-#define RST_BYTES   46
-
-#define DMA_BUFFER_SIZE   (RST_BYTES + nLEDS*24 + 1)
-
-enum {FWD, BACK};
-
-
-typedef struct{
-    const uint32_t*     Body;       // pointeris i objekto forma/ilgi ir spalva
-    uint8_t             Lenght;
-    uint8_t             CurrentSpeed;      // speed    (0-7)
-    uint8_t             CurrentDirection;  // kriptys  (FORWARD/BACK)
-    int16_t             CurrentPosition;   // nuo pirmo sviesos diodo iki nLEDS. nurodo objekto pradzia. int todel, kad objekto pozicija gali buti uz buferio ribu, bet dar reikia rodyti objekto "uodega"
-}Meteo_TypeDef;
-
-
-Meteo_TypeDef MeteoBlue = {
-    .Body = meteo_blue,
-    .Lenght = 10,
-    .CurrentSpeed = 0,
-    .CurrentDirection = FWD,
-    .CurrentPosition = 0
-};
-
-
-
-
 /* Private variables ---------------------------------------------------------*/
-uint8_t dma_buffer[DMA_BUFFER_SIZE];   // taimerio PULSE reiksme vienam sviesdiodziui
-
-FlagStatus SendToLedsRequired = RESET;
-FlagStatus BufferIsFilled = RESET;
+extern const uint32_t preset1[];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_TIM16_Init(void);
+static void MX_TIM16_Init(void);                                    
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
+                                
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-void WS2812B_Init(void);
-void WS2812B_LedsOff(void);
-void WS2812B_FillDMABuffer(const uint32_t* pdata);
-void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue);
-uint8_t* WS2812B_GetLedBuferPointer( uint16_t led);
-
-void WS2812B_ShowMeteo(Meteo_TypeDef* meteo);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -125,7 +80,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
     static uint32_t delay = 0;
-    static uint8_t n = 0, val = 0x01;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -161,10 +115,10 @@ int main(void)
     /* isvalom buferi ir gesinam ledus */
     WS2812B_LedsOff();
 
-    //WS2812B_Set_RGB(1, 0x00, 0xFF, 0x00);   //B
-    //WS2812B_Set_RGB(2, 0xFF, 0x00, 0x00);   //R
-    //WS2812B_Set_RGB(3, 0x00, 0x00, 0xFF); //G
-    //WS2812B_Set_RGB(10, 0xFF, 0xFF, 0xFF);//
+    //WS2812B_SetOneLed_RGB(1, 0x00, 0xFF, 0x00);   //B
+    //WS2812B_SetOneLed_RGB(2, 0xFF, 0x00, 0x00);   //R
+    //WS2812B_SetOneLed_RGB(3, 0x00, 0x00, 0xFF); //G
+    //WS2812B_SetOneLed_RGB(10, 0xFF, 0xFF, 0xFF);//
 
 
     //WS2812B_FillDMABuffer(meteo_red);
@@ -178,14 +132,14 @@ int main(void)
 
         if( delay < HAL_GetTick() ){
 
-            delay = HAL_GetTick() + 30;
+            delay = HAL_GetTick() + 40;
 
             //WS2812B_FillDMABuffer(preset1+n*nLEDS);
-            //if(++n > 19) n = 0;
+            //if(++n > 30) n = 0;
 
 
-
-            WS2812B_ShowMeteo(&MeteoBlue);
+            //WS2812B_ShowMeteo(&MeteoBlue);
+            //WS2812B_ShowMeteo(&MeteoRed);
 
 
 
@@ -198,10 +152,7 @@ int main(void)
   /* USER CODE BEGIN 3 */
 
         /* siunciam buferi */
-        if(SendToLedsRequired == SET){
-            SendToLedsRequired = RESET;
-            HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, DMA_BUFFER_SIZE );
-        }
+        WS2812B_SendOverDMA();
   }
   /* USER CODE END 3 */
 
@@ -217,7 +168,7 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
-    /**Initializes the CPU, AHB and APB busses clocks
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -231,7 +182,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks
+    /**Initializes the CPU, AHB and APB busses clocks 
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
@@ -244,11 +195,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time
+    /**Configure the Systick interrupt time 
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick
+    /**Configure the Systick 
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -308,10 +259,10 @@ static void MX_TIM16_Init(void)
 
 }
 
-/**
+/** 
   * Enable DMA controller clock
   */
-static void MX_DMA_Init(void)
+static void MX_DMA_Init(void) 
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -323,9 +274,9 @@ static void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as
-        * Analog
-        * Input
+/** Configure pins as 
+        * Analog 
+        * Input 
         * Output
         * EVENT_OUT
         * EXTI
@@ -353,118 +304,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-/*  */
-void WS2812B_Init(void){
-
-    uint16_t i = 0;
-
-    /* isvalom buferi */
-    while(i < DMA_BUFFER_SIZE){
-       dma_buffer[i] = 0;
-       i++;
-    }
-}
-
-
-/* buferio uzpildymas. priima pointeri i preseto buferi */
-void WS2812B_FillDMABuffer(const uint32_t* pdata){
-
-    uint16_t i = 0, j = 0;
-    uint32_t color = 0;
-    uint8_t* pdmabuf = dma_buffer+RST_BYTES;
-
-    BufferIsFilled = RESET;
-
-    /* ruosiam buferi */
-    while(i < nLEDS){
-
-        color = *(pdata+i);
-
-        while(j < 24){
-            *(pdmabuf+j+24*i) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
-            color = color<<1;
-            j++;
-        }
-
-        j = 0;
-        i++;
-    }
-
-    BufferIsFilled = SET;
-}
-
-/*  */
-void WS2812B_Set_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
-
-    uint8_t i = 0;
-    uint32_t color = (green<<16) | (red<<8) | blue;
-    uint8_t* pdata = WS2812B_GetLedBuferPointer(led);    // pointeris i reikiama ledo buferi
-
-    while(i < 24){
-        *(pdata+i) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
-        color = color<<1;
-        i++;
-    }
-}
-
-
-
-void WS2812B_ShowMeteo(Meteo_TypeDef* meteo) {
-
-    uint8_t i = 0, j = 0;
-    uint32_t color = 0;
-    uint8_t* pdmabuf = dma_buffer + RST_BYTES;
-
-
-    meteo->CurrentDirection = BACK;
-
-    do {
-
-        color = *( meteo->Body + i);
-
-        if(meteo->CurrentDirection == FWD) {
-
-            j = 0;
-
-            while(j < 24){
-                *(pdmabuf+j+24*i) = ( (color & 0x800000) == 0 ) ? LOW_LVL : HIGH_LVL;
-                color = color<<1;
-                j++;
-            }
-
-        } else {
-
-
-        }
-
-    } while(++i < meteo->Lenght);
-}
-
-
-
-
-
-/* grazina pasirinkto ledo 3 baitu pozicija ledu buferyje */
-uint8_t* WS2812B_GetLedBuferPointer( uint16_t led){
-    return dma_buffer + (RST_BYTES + 24*(led-1) );
-}
-
-/*  */
-void WS2812B_LedsOff(void){
-
-    uint16_t i = 0;
-    uint8_t* pdata = dma_buffer + RST_BYTES;
-
-    while(i < 24*nLEDS){
-        *(pdata+i) = LOW_LVL;
-        i++;
-    }
-
-    HAL_TIM_PWM_Start_DMA(&htim16, TIM_CHANNEL_1, (uint32_t*)dma_buffer, DMA_BUFFER_SIZE );
-    HAL_Delay(10);
-}
-
 
 /* SYSTICK callback funkcija */
 void HAL_SYSTICK_Callback(void)
@@ -500,7 +339,7 @@ void _Error_Handler(char *file, int line)
   * @retval None
   */
 void assert_failed(uint8_t* file, uint32_t line)
-{
+{ 
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
