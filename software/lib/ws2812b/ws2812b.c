@@ -94,14 +94,14 @@ void WS2812B_FillDMABuffer(const uint32_t* pdata){
 }
 
 
-/*  */
-void WS2812B_SetOneLed_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
+/* visu triju pikselio ledu nustatymas */
+void WS2812B_SetPixel_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
 
     uint8_t i = 0;
 
     ErrCode = 0x00;
 
-    if(led > nLEDS){
+    if(led > nLEDS || led == 0){
         ErrCode = 0x01;
         Error_Handler();
     }
@@ -120,6 +120,32 @@ void WS2812B_SetOneLed_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blu
         i++;
     }
 }
+
+
+/* vieno pikselio ledo busenos keitimas nekeiciant kitu ledu busenos */
+void WS2812B_SetPixelLed(uint16_t led, uint8_t color, uint8_t bright){
+
+    uint8_t i = 0;
+
+    ErrCode = 0x00;
+
+    if(led > nLEDS || led == 0){
+        ErrCode = 0x01;
+        Error_Handler();
+    }
+
+    if(bright > MAX_LIGHT) bright = MAX_LIGHT;
+
+    uint8_t* pdata = WS2812B_GetLedBuferPointer(led) + color*8;
+
+    while(i < 8){
+        *(pdata+i) = ( (bright & 0x80) == 0 ) ? LOW_LVL : HIGH_LVL;
+        bright = bright<<1;
+        i++;
+    }
+}
+
+
 
 
 /*  */
