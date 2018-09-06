@@ -6,7 +6,7 @@
   ******************************************************************************
   ** This notice applies to any and all portions of this file
   * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
+  * USER CODE END. Other portions of this file, whether
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
@@ -58,9 +58,9 @@ extern const uint32_t preset1[];
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_TIM16_Init(void);                                    
+static void MX_TIM16_Init(void);
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-                                
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -80,6 +80,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
     static uint32_t delay = 0;
+    uint8_t n = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -115,10 +116,14 @@ int main(void)
     /* isvalom buferi ir gesinam ledus */
     WS2812B_LedsOff();
 
-    //WS2812B_SetOneLed_RGB(1, 0x00, 0xFF, 0x00);   //B
-    //WS2812B_SetOneLed_RGB(2, 0xFF, 0x00, 0x00);   //R
-    //WS2812B_SetOneLed_RGB(3, 0x00, 0x00, 0xFF); //G
-    //WS2812B_SetOneLed_RGB(10, 0xFF, 0xFF, 0xFF);//
+    //WS2812B_SetPixel_RGB(1, 0xFF, 0x00, 0x00);   //R
+    //WS2812B_SetPixel_RGB(1, 0x00, 0x00, 0xFF); //B
+
+
+    WS2812B_SetPixelLed(14, RED, 0x01);
+    WS2812B_SetPixelLed(14, BLUE, 0x01);
+    WS2812B_SetPixelLed(14, GREEN, 0x01);
+    //WS2812B_SetPixelLed(uint16_t led, uint8_t color, uint8_t bright);
 
 
     //WS2812B_FillDMABuffer(meteo_red);
@@ -132,7 +137,7 @@ int main(void)
 
         if( delay < HAL_GetTick() ){
 
-            delay = HAL_GetTick() + 40;
+            delay = HAL_GetTick() + 60;
 
             //WS2812B_FillDMABuffer(preset1+n*nLEDS);
             //if(++n > 30) n = 0;
@@ -141,6 +146,8 @@ int main(void)
             //WS2812B_ShowMeteo(&MeteoBlue);
             //WS2812B_ShowMeteo(&MeteoRed);
 
+            //if(++n > 20) n = 1;
+            //WS2812B_SetPixelLed(n, RED, 0x01);
 
 
             SendToLedsRequired = SET;
@@ -168,7 +175,7 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct;
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -182,7 +189,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks 
+    /**Initializes the CPU, AHB and APB busses clocks
     */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
@@ -195,11 +202,11 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time 
+    /**Configure the Systick interrupt time
     */
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick 
+    /**Configure the Systick
     */
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
@@ -259,10 +266,10 @@ static void MX_TIM16_Init(void)
 
 }
 
-/** 
+/**
   * Enable DMA controller clock
   */
-static void MX_DMA_Init(void) 
+static void MX_DMA_Init(void)
 {
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -274,9 +281,9 @@ static void MX_DMA_Init(void)
 
 }
 
-/** Configure pins as 
-        * Analog 
-        * Input 
+/** Configure pins as
+        * Analog
+        * Input
         * Output
         * EVENT_OUT
         * EXTI
@@ -339,7 +346,7 @@ void _Error_Handler(char *file, int line)
   * @retval None
   */
 void assert_failed(uint8_t* file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */

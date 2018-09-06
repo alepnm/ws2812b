@@ -2,7 +2,7 @@
 #define WS2812B_H_INCLUDED
 
 
-#define nLEDS       10
+#define nLEDS       20
 
 #define MAX_LIGHT   0xA0    // sviesos diodo MAX ryskumas
 
@@ -14,6 +14,7 @@
 #define DMA_BUFFER_SIZE   (RST_BYTES + nLEDS*24 + 1)
 
 enum { FORWARD = 0, BACKWARD };
+enum { GREEN = 0, RED, BLUE };
 
 
 typedef struct{
@@ -41,7 +42,8 @@ void WS2812B_SendOverDMA(void);
 
 void WS2812B_LedsOff(void);
 void WS2812B_FillDMABuffer(const uint32_t* pdata);
-void WS2812B_SetOneLed_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue);
+void WS2812B_SetPixel_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue);
+void WS2812B_SetPixelLed(uint16_t led, uint8_t color, uint8_t bright);
 uint8_t* WS2812B_GetLedBuferPointer( uint16_t led);
 
 void WS2812B_ShowMeteo(Meteo_TypeDef* meteo);

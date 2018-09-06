@@ -45,14 +45,16 @@ static uint8_t dma_buffer[DMA_BUFFER_SIZE];   // taimerio PULSE reiksme vienam s
 void WS2812B_Init(void){
 
     uint16_t i = 0;
+    uint8_t* pdata = dma_buffer + RST_BYTES;
 
     /* isvalom buferi */
     while(i < DMA_BUFFER_SIZE){
-       dma_buffer[i] = 0;
+
+       if(i < RST_BYTES) *(pdata+i) = 0;
+       else *(pdata+i) = LOW_LVL;
+
        i++;
     }
-
-
 }
 
 
@@ -94,17 +96,10 @@ void WS2812B_FillDMABuffer(const uint32_t* pdata){
 }
 
 
-/*  */
-void WS2812B_SetOneLed_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
+/* visu triju pikselio ledu nustatymas */
+void WS2812B_SetPixel_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blue){
 
     uint8_t i = 0;
-
-    ErrCode = 0x00;
-
-    if(led > nLEDS){
-        ErrCode = 0x01;
-        Error_Handler();
-    }
 
     if(red > MAX_LIGHT) red = MAX_LIGHT;
     if(green > MAX_LIGHT) green = MAX_LIGHT;
@@ -120,6 +115,25 @@ void WS2812B_SetOneLed_RGB(uint16_t led, uint8_t red, uint8_t green, uint8_t blu
         i++;
     }
 }
+
+
+/* vieno pikselio ledo busenos keitimas nekeiciant kitu ledu busenos */
+void WS2812B_SetPixelLed(uint16_t led, uint8_t color, uint8_t bright){
+
+    uint8_t i = 0;
+
+    if(bright > MAX_LIGHT) bright = MAX_LIGHT;
+
+    uint8_t* pdata = WS2812B_GetLedBuferPointer(led) + color*8;
+
+    while(i < 8){
+        *(pdata+i) = ( (bright & 0x80) == 0 ) ? LOW_LVL : HIGH_LVL;
+        bright = bright<<1;
+        i++;
+    }
+}
+
+
 
 
 /*  */
@@ -154,14 +168,6 @@ void WS2812B_ShowMeteo(Meteo_TypeDef* meteo) {
 
 /* grazina pasirinkto ledo 3 baitu pozicija ledu buferyje */
 uint8_t* WS2812B_GetLedBuferPointer( uint16_t led){
-
-    ErrCode = 0x00;
-
-    if(led > nLEDS){
-        ErrCode = 0x01;
-        Error_Handler();
-    }
-
     return dma_buffer + (RST_BYTES + 24*(led-1) );
 }
 
