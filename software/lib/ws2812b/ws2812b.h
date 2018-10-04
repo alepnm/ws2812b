@@ -4,7 +4,7 @@
 
 #define nLEDS       20
 
-#define MAX_LIGHT   0xA0    // sviesos diodo MAX ryskumas
+#define MAX_LIGHT   0xFF    // sviesos diodo MAX ryskumas
 
 #define TMR_COUNTER 60  //60 -> 1.25us
 #define LOW_LVL     18  // loginis 0
@@ -23,6 +23,7 @@ typedef struct{
     uint8_t             CurrentSpeed;      // speed    (0-7)
     uint8_t             CurrentDirection;  // kriptis  (FORWARD/BACK)
     int16_t             CurrentPosition;   // nuo pirmo sviesos diodo iki nLEDS. nurodo objekto pradzia. int todel, kad objekto pozicija gali buti uz buferio ribu, bet dar reikia rodyti objekto "uodega"
+    uint16_t            lPosition;          // paskutine pozicija
 }Meteo_TypeDef;
 
 

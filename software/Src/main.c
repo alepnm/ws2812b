@@ -80,7 +80,6 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
     static uint32_t delay = 0;
-    uint8_t n = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -116,18 +115,6 @@ int main(void)
     /* isvalom buferi ir gesinam ledus */
     WS2812B_LedsOff();
 
-    //WS2812B_SetPixel_RGB(1, 0xFF, 0x00, 0x00);   //R
-    //WS2812B_SetPixel_RGB(1, 0x00, 0x00, 0xFF); //B
-
-
-    WS2812B_SetPixelLed(14, RED, 0x01);
-    WS2812B_SetPixelLed(14, BLUE, 0x01);
-    WS2812B_SetPixelLed(14, GREEN, 0x01);
-    //WS2812B_SetPixelLed(uint16_t led, uint8_t color, uint8_t bright);
-
-
-    //WS2812B_FillDMABuffer(meteo_red);
-
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -137,18 +124,9 @@ int main(void)
 
         if( delay < HAL_GetTick() ){
 
-            delay = HAL_GetTick() + 60;
+            delay = HAL_GetTick() + 20;
 
-            //WS2812B_FillDMABuffer(preset1+n*nLEDS);
-            //if(++n > 30) n = 0;
-
-
-            //WS2812B_ShowMeteo(&MeteoBlue);
-            //WS2812B_ShowMeteo(&MeteoRed);
-
-            //if(++n > 20) n = 1;
-            //WS2812B_SetPixelLed(n, RED, 0x01);
-
+            WS2812B_ShowMeteo(&MeteoBlue);
 
             SendToLedsRequired = SET;
         }

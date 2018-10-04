@@ -4443,7 +4443,7 @@
 
 1535738182 source:d:\projects\ws2812b\software\startup\startup_stm32f0xx.s
 
-1536258506 source:d:\projects\ws2812b\software\src\main.c
+1536432476 source:d:\projects\ws2812b\software\src\main.c
 	"main.h"
 	"stm32f0xx_hal.h"
 	"systick.h"
@@ -5946,14 +5946,17 @@
 
 1536076190 c:\working\git\ws2812b\software\inc\presets.h
 
-1536257679 source:d:\projects\ws2812b\software\lib\ws2812b\ws2812b.c
-	"stm32f0xx_hal.h"
+1536440244 source:d:\projects\ws2812b\software\lib\ws2812b\ws2812b.c
+	"globals.h"
 	"ws2812b.h"
 	"presets.h"
 
-1536256236 d:\projects\ws2812b\software\lib\ws2812b\ws2812b.h
+1536438089 d:\projects\ws2812b\software\lib\ws2812b\ws2812b.h
 
 1536179209 d:\projects\ws2812b\software\lib\ws2812b\presets.h
 
 1536314004 c:\working\git\ws2812b\software\lib\ws2812b\ws2812b.h
+
+1536340560 d:\projects\ws2812b\software\inc\globals.h
+	"stm32f0xx_hal.h"
 
